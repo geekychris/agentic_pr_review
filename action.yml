@@ -38,7 +38,7 @@ runs:
     - name: Install code-review-agent
       shell: bash
       run: |
-        pip install -q "${{ github.action_path }}"
+        pip install -q "${{ github.action_path }}" ruff
 
     - name: Run review
       shell: bash
