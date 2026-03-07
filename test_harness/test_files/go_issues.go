@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // ── ERROR-level: SQL injection ──
@@ -29,6 +31,45 @@ var requestCount int
 func handler(w http.ResponseWriter, r *http.Request) {
 	requestCount++
 	fmt.Fprintf(w, "Request #%d", requestCount)
+}
+
+// ── ERROR-level: Channel deadlock — unbuffered send with no receiver ──
+func deadlockChannel() {
+	ch := make(chan int)
+	ch <- 42 // Blocks forever — no goroutine reading from ch
+	fmt.Println(<-ch)
+}
+
+// ── ERROR-level: Mutex deadlock — lock held across blocking call ──
+var mu sync.Mutex
+
+func updateAndNotify(ch chan<- string, value string) {
+	mu.Lock()
+	// If ch is full or unbuffered and no reader exists, this blocks
+	// while holding the lock — any other goroutine needing mu will deadlock
+	ch <- "updated: " + value
+	mu.Unlock()
+}
+
+// ── WARNING-level: Context leak — cancel never called ──
+func fetchWithTimeout(db *sql.DB, id int) (string, error) {
+	ctx, _ := context.WithTimeout(context.Background(), 0) // cancel func discarded!
+	row := db.QueryRowContext(ctx, "SELECT name FROM users WHERE id = ?", id)
+	var name string
+	err := row.Scan(&name)
+	return name, err
+}
+
+// ── WARNING-level: Goroutine leak — channel never closed ──
+func produce(items []string) <-chan string {
+	ch := make(chan string)
+	go func() {
+		for _, item := range items {
+			ch <- item
+		}
+		// Missing: close(ch) — consumers will block forever waiting for more
+	}()
+	return ch
 }
 
 // ── WARNING-level: Unchecked errors ──

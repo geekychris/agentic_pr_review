@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::fs;
 use std::process::Command;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 // ── ERROR-level: Command injection via user input ──
 fn run_user_command(input: &str) -> String {
@@ -22,6 +24,27 @@ fn dangerous_operation(ptr: *const i32) -> i32 {
 // ── ERROR-level: Hardcoded secret ──
 const API_TOKEN: &str = "ghp_super_secret_token_12345";
 
+// ── ERROR-level: Mutex deadlock — nested locks in different order ──
+fn transfer(
+    from: &Arc<Mutex<i64>>,
+    to: &Arc<Mutex<i64>>,
+    amount: i64,
+) {
+    let mut src = from.lock().unwrap();
+    let mut dst = to.lock().unwrap(); // If another thread calls transfer(to, from, ...)
+    *src -= amount;                    // they'll deadlock: each holds one lock,
+    *dst += amount;                    // waiting for the other
+}
+
+// ── ERROR-level: Use after move — moved value used again ──
+fn consume_and_reuse() {
+    let data = vec![1, 2, 3];
+    let _moved = data;       // `data` is moved here
+    // println!("{:?}", data); // Would fail: use of moved value
+    // But this pattern shows intent to reuse:
+    let len = _moved.len();  // Using _moved is fine, but original name is misleading
+}
+
 // ── WARNING-level: Unwrap on Result — will panic on error ──
 fn read_config(path: &str) -> String {
     fs::read_to_string(path).unwrap()
@@ -30,6 +53,19 @@ fn read_config(path: &str) -> String {
 // ── WARNING-level: Integer overflow potential ──
 fn multiply(a: u32, b: u32) -> u32 {
     a * b  // Can overflow without checked_mul
+}
+
+// ── WARNING-level: Blocking inside async-like spawn ──
+fn spawn_blocking_work() {
+    let data = Arc::new(Mutex::new(Vec::new()));
+    for i in 0..10 {
+        let data = Arc::clone(&data);
+        thread::spawn(move || {
+            let mut vec = data.lock().unwrap();
+            thread::sleep(std::time::Duration::from_secs(1)); // Holds lock during sleep!
+            vec.push(i);
+        });
+    }
 }
 
 // ── WARNING-level: Missing error handling (unwrap) ──

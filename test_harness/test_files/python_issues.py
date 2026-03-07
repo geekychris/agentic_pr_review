@@ -87,6 +87,39 @@ def index_by_id(items):
     return result
 
 
+# ── ERROR-level: Threading deadlock — locks acquired in opposite order ──
+import threading
+
+lock_accounts = threading.Lock()
+lock_ledger = threading.Lock()
+
+def transfer_funds(from_acct, to_acct, amount):
+    with lock_accounts:
+        with lock_ledger:  # Acquires accounts then ledger
+            from_acct["balance"] -= amount
+            to_acct["balance"] += amount
+
+def reconcile_ledger(accounts, ledger):
+    with lock_ledger:
+        with lock_accounts:  # Acquires ledger then accounts — DEADLOCK!
+            for acct in accounts:
+                ledger[acct["id"]] = acct["balance"]
+
+
+# ── ERROR-level: Generator exhaustion — reusing consumed iterator ──
+def process_pipeline(records):
+    filtered = (r for r in records if r["active"])
+    count = sum(1 for _ in filtered)    # Exhausts the generator
+    results = list(filtered)            # BUG: always empty, generator spent
+    return {"count": count, "results": results}
+
+
+# ── WARNING-level: Late binding closure in loop ──
+def make_multipliers():
+    return [lambda x: x * i for i in range(5)]
+    # BUG: all lambdas capture `i` by reference, all will multiply by 4
+
+
 # ── INFO-level: TODO / FIXME comments ──
 def process_response(response):
     # TODO: add retry logic for transient failures

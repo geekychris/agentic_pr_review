@@ -1,10 +1,12 @@
 import java.sql.*;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 import java.text.SimpleDateFormat; // unused import
 
 /**
  * Intentionally buggy Java code for testing the code review agent.
+ * Contains issues at every severity level including deadlocks and concurrency bugs.
  */
 public class JavaIssues {
 
@@ -27,10 +29,51 @@ public class JavaIssues {
     // ── ERROR-level: Hardcoded secret ──
     private static final String SECRET_KEY = "super-secret-key-12345";
 
-    // ── ERROR-level: Insecure random for security token ──
-    public String generateToken() {
-        Random rand = new Random();
-        return String.valueOf(rand.nextLong());
+    // ── ERROR-level: Classic deadlock — two locks acquired in opposite order ──
+    private final Object lockA = new Object();
+    private final Object lockB = new Object();
+    private int balanceA = 1000;
+    private int balanceB = 2000;
+
+    public void transferAtoB(int amount) {
+        synchronized (lockA) {
+            synchronized (lockB) {  // Acquires lockA then lockB
+                balanceA -= amount;
+                balanceB += amount;
+            }
+        }
+    }
+
+    public void transferBtoA(int amount) {
+        synchronized (lockB) {
+            synchronized (lockA) {  // Acquires lockB then lockA — DEADLOCK!
+                balanceB -= amount;
+                balanceA += amount;
+            }
+        }
+    }
+
+    // ── ERROR-level: Double-checked locking without volatile ──
+    private static JavaIssues instance;
+
+    public static JavaIssues getInstance() {
+        if (instance == null) {                    // First check (no lock)
+            synchronized (JavaIssues.class) {
+                if (instance == null) {            // Second check (with lock)
+                    instance = new JavaIssues();   // BUG: instance not volatile,
+                }                                  // another thread may see
+            }                                      // partially constructed object
+        }
+        return instance;
+    }
+
+    // ── ERROR-level: ConcurrentModificationException ──
+    public void removeInactive(List<Map<String, Object>> users) {
+        for (Map<String, Object> user : users) {     // Iterating
+            if (!Boolean.TRUE.equals(user.get("active"))) {
+                users.remove(user);                   // Modifying while iterating!
+            }
+        }
     }
 
     // ── WARNING-level: Null pointer risk — no null check ──
@@ -48,10 +91,29 @@ public class JavaIssues {
         }
     }
 
-    // ── WARNING-level: Thread safety issue (non-atomic increment) ──
-    private int counter = 0;
-    public void increment() {
-        counter++;  // Not thread-safe
+    // ── WARNING-level: Thread pool never shut down — resource leak ──
+    public List<Future<String>> processAsync(List<String> tasks) {
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+        List<Future<String>> futures = new ArrayList<>();
+        for (String task : tasks) {
+            futures.add(pool.submit(() -> {
+                Thread.sleep(100);
+                return "done: " + task;
+            }));
+        }
+        return futures;
+        // pool is never shut down!
+    }
+
+    // ── WARNING-level: Race condition — check-then-act without synchronization ──
+    private Map<String, String> cache = new HashMap<>();
+
+    public String getOrCompute(String key) {
+        if (!cache.containsKey(key)) {           // Check
+            String value = expensiveCompute(key);
+            cache.put(key, value);               // Act — race between check and put
+        }
+        return cache.get(key);
     }
 
     // ── WARNING-level: Magic numbers ──
@@ -66,38 +128,7 @@ public class JavaIssues {
     // ── WARNING-level: System.out instead of logger ──
     public void processOrder(String orderId) {
         System.out.println("Processing order: " + orderId);
-        // ... business logic ...
         System.out.println("Order processed: " + orderId);
-    }
-
-    // ── SUGGESTION-level: Method too long, does too many things ──
-    public Map<String, Object> importCsvData(String csvContent) {
-        Map<String, Object> result = new HashMap<>();
-        String[] lines = csvContent.split("\n");
-        String[] headers = lines[0].split(",");
-        List<Map<String, String>> rows = new ArrayList<>();
-        for (int i = 1; i < lines.length; i++) {
-            String[] values = lines[i].split(",");
-            Map<String, String> row = new HashMap<>();
-            for (int j = 0; j < headers.length; j++) {
-                row.put(headers[j], values[j]);
-            }
-            rows.add(row);
-        }
-        int valid = 0;
-        int invalid = 0;
-        for (Map<String, String> row : rows) {
-            if (row.get("email") != null && row.get("email").contains("@")) {
-                valid++;
-            } else {
-                invalid++;
-            }
-        }
-        result.put("rows", rows);
-        result.put("valid", valid);
-        result.put("invalid", invalid);
-        result.put("total", rows.size());
-        return result;
     }
 
     // ── SUGGESTION-level: String concatenation in loop ──
@@ -109,7 +140,7 @@ public class JavaIssues {
         return report;
     }
 
-    // ── SUGGESTION-level: Could use enhanced for-loop / streams ──
+    // ── SUGGESTION-level: Could use streams ──
     public List<String> filterActive(List<Map<String, Object>> users) {
         List<String> names = new ArrayList<>();
         for (int i = 0; i < users.size(); i++) {
@@ -121,10 +152,20 @@ public class JavaIssues {
         return names;
     }
 
+    // ── SUGGESTION-level: Insecure random for security token ──
+    public String generateToken() {
+        Random rand = new Random();
+        return String.valueOf(rand.nextLong());
+    }
+
     // ── INFO-level: TODO comments ──
     // TODO: add connection pooling
     // FIXME: this class is getting too large, consider splitting
     public void placeholder() {
         // no-op
+    }
+
+    private String expensiveCompute(String key) {
+        return key.toUpperCase();
     }
 }
