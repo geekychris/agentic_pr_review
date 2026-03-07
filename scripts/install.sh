@@ -6,11 +6,13 @@
 #   ./scripts/install.sh <owner/repo or /path/to/repo> [OPTIONS]
 #
 # Options:
-#   --with-config     Also create a starter .codereview.yml
-#   --set-secret      Prompt for OPENAI_API_KEY and set it as a GitHub secret
-#   --branch NAME     Branch/tag of the action to reference (default: main)
+#   --with-config       Also create a starter .codereview.yml
+#   --set-secret        Prompt for OPENAI_API_KEY and set it as a GitHub secret
+#   --secret-from-env   Read OPENAI_API_KEY from this project's .env file (non-interactive)
+#   --branch NAME       Branch/tag of the action to reference (default: main)
 #
 # Examples:
+#   ./scripts/install.sh geekychris/myapp --secret-from-env --with-config
 #   ./scripts/install.sh geekychris/test_repo --set-secret --with-config
 #   ./scripts/install.sh /path/to/local/repo --with-config
 #   ./scripts/install.sh geekychris/myapp --branch v1.0
@@ -33,18 +35,20 @@ if [ -z "$ACTION_REPO" ]; then
 fi
 
 # ── Parse arguments ──
-TARGET="${1:?Usage: $0 <owner/repo or /path/to/repo> [--with-config] [--set-secret] [--branch NAME]}"
+TARGET="${1:?Usage: $0 <owner/repo or /path/to/repo> [--with-config] [--set-secret] [--secret-from-env] [--branch NAME]}"
 shift
 
 WITH_CONFIG=false
 SET_SECRET=false
+SECRET_FROM_ENV=false
 ACTION_BRANCH="main"
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --with-config) WITH_CONFIG=true ;;
-    --set-secret)  SET_SECRET=true ;;
-    --branch)      shift; ACTION_BRANCH="${1:?--branch requires a value}" ;;
+    --with-config)     WITH_CONFIG=true ;;
+    --set-secret)      SET_SECRET=true ;;
+    --secret-from-env) SECRET_FROM_ENV=true ;;
+    --branch)          shift; ACTION_BRANCH="${1:?--branch requires a value}" ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
   shift
@@ -209,7 +213,29 @@ else
 fi
 
 # ── Set OPENAI_API_KEY secret ──
-if [ "$SET_SECRET" = true ]; then
+SECRET_SET=false
+
+if [ "$SECRET_FROM_ENV" = true ]; then
+  if ! command -v gh &>/dev/null; then
+    echo "Error: 'gh' CLI is required to set secrets. Install: brew install gh" >&2
+    exit 1
+  fi
+
+  ENV_FILE="$PROJECT_DIR/.env"
+  if [ ! -f "$ENV_FILE" ]; then
+    echo "⚠ No .env file found at $ENV_FILE — skipping secret setup"
+  else
+    OPENAI_KEY="$(grep '^CRA_OPENAI_API_KEY=' "$ENV_FILE" | cut -d= -f2-)"
+    if [ -z "$OPENAI_KEY" ]; then
+      echo "⚠ CRA_OPENAI_API_KEY not found in $ENV_FILE — skipping secret setup"
+    else
+      echo ""
+      echo "$OPENAI_KEY" | gh secret set OPENAI_API_KEY --repo "$TARGET_REPO"
+      echo "✓ OPENAI_API_KEY secret set on $TARGET_REPO (from .env)"
+      SECRET_SET=true
+    fi
+  fi
+elif [ "$SET_SECRET" = true ]; then
   if ! command -v gh &>/dev/null; then
     echo "Error: 'gh' CLI is required to set secrets. Install: brew install gh" >&2
     exit 1
@@ -226,6 +252,7 @@ if [ "$SET_SECRET" = true ]; then
   else
     echo "$OPENAI_KEY" | gh secret set OPENAI_API_KEY --repo "$TARGET_REPO"
     echo "✓ OPENAI_API_KEY secret set on $TARGET_REPO"
+    SECRET_SET=true
   fi
 fi
 
@@ -233,14 +260,16 @@ echo ""
 echo "Done! The workflow references $ACTION_REPO@$ACTION_BRANCH"
 echo "(no code was copied — the target repo uses the action from the source repo)"
 echo ""
-echo "Remaining steps:"
-if [ "$SET_SECRET" != true ]; then
+if [ "$SECRET_SET" = true ]; then
+  echo "✓ OPENAI_API_KEY secret is configured"
+  echo "✓ GITHUB_TOKEN is provided automatically by GitHub Actions"
+  echo "✓ Ready! Open a PR on $TARGET_REPO to trigger the review."
+else
+  echo "Remaining steps:"
   echo "  1. Set the OpenAI secret: gh secret set OPENAI_API_KEY --repo $TARGET_REPO"
   echo "  2. GITHUB_TOKEN is provided automatically by GitHub Actions"
-else
-  echo "  1. GITHUB_TOKEN is provided automatically by GitHub Actions"
+  if [ "$MODE" = "local" ]; then
+    echo "  3. Commit and push the new files"
+  fi
+  echo "  • Open a PR to trigger the review!"
 fi
-if [ "$MODE" = "local" ]; then
-  echo "  • Commit and push the new files"
-fi
-echo "  • Open a PR to trigger the review!"
