@@ -181,6 +181,22 @@ class Finding(BaseModel):
         return f"{self.file}:{self.line}:{self.category.value}"
 
 
+class AggregationStats(BaseModel):
+    """Tracks what was dropped during finding aggregation."""
+
+    total_raw: int = 0
+    after_threshold: int = 0
+    after_dedup: int = 0
+    after_per_file_limit: int = 0
+    after_global_limit: int = 0
+    dropped_by_severity: dict[str, int] = Field(default_factory=dict)
+    dropped_by_file: dict[str, int] = Field(default_factory=dict)
+
+    @property
+    def total_dropped(self) -> int:
+        return self.total_raw - self.after_global_limit
+
+
 class ReviewResult(BaseModel):
     """Aggregated output from all analyzers."""
 
@@ -188,6 +204,7 @@ class ReviewResult(BaseModel):
     findings: list[Finding] = Field(default_factory=list)
     summary: str = ""
     error: str | None = None
+    stats: AggregationStats = Field(default_factory=AggregationStats)
 
     @property
     def findings_by_severity(self) -> dict[Severity, list[Finding]]:

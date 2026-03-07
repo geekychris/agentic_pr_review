@@ -30,6 +30,15 @@ Review the diff for security vulnerabilities. You have the full file for context
 - Insecure file operations
 - Information leakage (verbose errors, stack traces)
 
+## Severity Guidelines
+Choose the severity that matches the actual risk:
+- **error** — Exploitable vulnerability with direct impact (e.g. SQL injection with user input, command injection, hardcoded production secrets)
+- **warning** — Potential security concern that depends on context (e.g. missing input validation, insecure random for non-critical use, broad exception handling that may leak info)
+- **suggestion** — Security best practice not followed but low risk (e.g. could use more specific exception type, missing security headers in non-public endpoint)
+- **info** — Informational note (e.g. dependency has known CVE but not exploitable here)
+
+Do NOT mark everything as "error". Reserve "error" for clearly exploitable vulnerabilities.
+
 For each finding, respond with a JSON array:
 ```json
 {

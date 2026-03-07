@@ -27,6 +27,15 @@ Review the diff for correctness issues. You have the full file to validate that 
 - Missing edge cases
 - Breaking changes to existing functionality
 
+## Severity Guidelines
+Choose the severity that matches the actual impact:
+- **error** — Will cause crashes, data loss, or broken functionality (e.g. null dereference, infinite loop, race condition causing corruption)
+- **warning** — Likely to cause bugs in edge cases or under certain conditions (e.g. missing error check, mutable default argument, off-by-one that may not always trigger)
+- **suggestion** — Code works but could be improved (e.g. simplifiable logic, missing type hints, verbose patterns)
+- **info** — Observations or notes (e.g. TODO comments, minor inconsistencies)
+
+Do NOT mark everything as "error". Reserve "error" for issues that **will** break at runtime.
+
 For each finding, respond with a JSON array:
 ```json
 {
@@ -34,7 +43,7 @@ For each finding, respond with a JSON array:
     {
       "line": 42,
       "end_line": null,
-      "severity": "error",
+      "severity": "warning",
       "category": "correctness",
       "title": "Short title",
       "description": "Detailed explanation of the issue",

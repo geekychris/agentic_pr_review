@@ -63,7 +63,9 @@ class ReviewConfig(BaseModel):
     )
     linters: LintersConfig = Field(default_factory=LintersConfig)
     severity_threshold: str = "suggestion"
+    inline_threshold: str = "warning"  # Only post inline comments for findings >= this severity
     max_comments: int = 25
+    max_comments_per_file: int = 10
     plugins: list[str] = Field(default_factory=list)
     custom_instructions: str = ""
 

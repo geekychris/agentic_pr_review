@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import sys
+from typing import Any
 
 import click
 from rich.console import Console
@@ -39,12 +40,23 @@ def main() -> None:
 @click.option("--debug", is_flag=True, help="Enable debug logging")
 @click.option("--config", "config_path", type=click.Path(), help="Path to local .codereview.yml")
 @click.option("--json-output", is_flag=True, help="Output findings as JSON")
+@click.option(
+    "--severity",
+    type=click.Choice(["error", "warning", "suggestion", "info"], case_sensitive=False),
+    default=None,
+    help="Only report findings at this severity or above (overrides config)",
+)
+@click.option(
+    "--max-comments", type=int, default=None, help="Max total comments (overrides config)"
+)
 def review(
     pr_url: str,
     dry_run: bool,
     debug: bool,
     config_path: str | None,
     json_output: bool,
+    severity: str | None,
+    max_comments: int | None,
 ) -> None:
     """Review a pull request.
 
@@ -60,7 +72,7 @@ def review(
         console.print("[red]Error:[/] Set CRA_GITHUB_TOKEN or GITHUB_TOKEN environment variable")
         sys.exit(1)
 
-    config_overrides = None
+    config_overrides: dict[str, Any] | None = None
     if config_path:
         from pathlib import Path
 
@@ -68,6 +80,14 @@ def review(
 
         cfg = ReviewConfig.from_yaml(Path(config_path))
         config_overrides = cfg.model_dump()
+
+    # CLI flags override config
+    if severity or max_comments:
+        config_overrides = config_overrides or {}
+        if severity:
+            config_overrides["severity_threshold"] = severity
+        if max_comments:
+            config_overrides["max_comments"] = max_comments
 
     result = asyncio.run(
         run_review(

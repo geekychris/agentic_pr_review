@@ -137,6 +137,12 @@ class GitHubClient:
             f"/repos/{owner}/{repo}/pulls/{pr_number}/reviews",
             json=payload,
         )
+        if resp.status_code >= 400:
+            logger.error(
+                "GitHub review API error %d: %s",
+                resp.status_code,
+                resp.text,
+            )
         resp.raise_for_status()
         return resp.json()
 

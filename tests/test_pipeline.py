@@ -22,7 +22,7 @@ def test_aggregate_deduplication() -> None:
                 category=Category.SECURITY, title="SQL injection",
                 description="found by linter", analyzer="linter"),
     ]
-    result = _aggregate_findings(findings, config)
+    result, _stats = _aggregate_findings(findings, config)
     # Same file:line:category → deduplicated
     assert len(result) == 1
 
@@ -34,7 +34,7 @@ def test_aggregate_max_comments() -> None:
                 category=Category.STYLE, title=f"issue {i}", description="")
         for i in range(10)
     ]
-    result = _aggregate_findings(findings, config)
+    result, _stats = _aggregate_findings(findings, config)
     assert len(result) == 3
 
 
@@ -48,8 +48,10 @@ def test_aggregate_severity_filtering() -> None:
         Finding(file="a.py", line=3, severity=Severity.SUGGESTION,
                 category=Category.STYLE, title="Suggestion", description=""),
     ]
-    result = _aggregate_findings(findings, config)
+    result, stats = _aggregate_findings(findings, config)
     # Suggestion should be filtered out (threshold is warning)
     assert len(result) == 2
     severities = {f.severity for f in result}
     assert Severity.SUGGESTION not in severities
+    assert stats.total_raw == 3
+    assert stats.total_dropped == 1

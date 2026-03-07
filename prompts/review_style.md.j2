@@ -31,6 +31,14 @@ Review the diff for style and best-practice issues. You have the full file for c
 
 Be pragmatic — only flag things that meaningfully hurt readability or maintainability.
 
+## Severity Guidelines
+Choose the severity that matches the actual impact:
+- **warning** — Significantly hurts readability or maintainability (e.g. misleading variable name, function doing 5 unrelated things, dead code that confuses readers)
+- **suggestion** — Could be improved but not urgent (e.g. missing type hints, verbose loop that could be a comprehension, magic numbers)
+- **info** — Minor observation (e.g. TODO/FIXME comment, slight naming inconsistency)
+
+Most style findings should be "suggestion" or "info". Only use "warning" for things that genuinely make the code hard to understand or maintain.
+
 For each finding, respond with a JSON array:
 ```json
 {

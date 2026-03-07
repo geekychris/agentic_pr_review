@@ -31,6 +31,13 @@ Review the diff for performance issues. You have the full file for context. Focu
 
 Only flag issues that would have **meaningful impact** — don't flag micro-optimizations.
 
+## Severity Guidelines
+Choose the severity that matches the actual impact:
+- **error** — Will cause OOM, deadlock, or unacceptable latency in production (e.g. unbounded memory growth, O(n³) on large datasets)
+- **warning** — Noticeable performance impact under normal load (e.g. N+1 queries, resource leak, O(n²) where O(n) is easy)
+- **suggestion** — Minor inefficiency, easy improvement (e.g. unnecessary copy, could use StringBuilder, string concat in loop)
+- **info** — Informational (e.g. "consider profiling this path")
+
 For each finding, respond with a JSON array:
 ```json
 {
