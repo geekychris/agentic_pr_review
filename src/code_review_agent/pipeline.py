@@ -344,7 +344,7 @@ def _build_summary(
     """Build a markdown summary grouped by severity tier."""
     if not findings:
         return (
-            "## Code Review Summary\n\n"
+            "## 🔍 mega_cool_bot — Code Review Summary\n\n"
             "No issues found. The changes look good.\n\n"
             f"**Review plan:** {plan.reasoning}"
         )
@@ -355,7 +355,7 @@ def _build_summary(
     suggestions = [f for f in findings if f.severity == Severity.SUGGESTION]
     infos = [f for f in findings if f.severity == Severity.INFO]
 
-    lines = ["## Code Review Summary\n"]
+    lines = ["## 🔍 mega_cool_bot — Code Review Summary\n"]
     lines.append(f"Found **{len(findings)}** issue(s):\n")
     for label, group, emoji in [
         ("error", errors, "🔴"),
