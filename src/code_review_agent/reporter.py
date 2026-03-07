@@ -263,7 +263,7 @@ class Reporter:
         summary_only = summary_only or []
 
         total = len(result.findings)
-        parts.append("## 🔍 Code Review Summary\n")
+        parts.append("## 🔍 mega_cool_bot — Code Review Summary\n")
         parts.append(
             f"Found **{total}** issue(s) across "
             f"**{len(self._files_set(result.findings))}** file(s).\n"
