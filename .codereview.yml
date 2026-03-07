@@ -11,26 +11,23 @@ focus_areas:
 
 ignore_paths:
   - "*.lock"
-  - "test_harness/test_files/**"
-  - ".github/**"
+  - "vendor/**"
+  - "generated/**"
+  - "node_modules/**"
 
 linters:
   python:
     enabled: true
     tool: ruff
   java:
-    enabled: false
+    enabled: true
+    tool: checkstyle
   go:
-    enabled: false
+    enabled: true
+    tool: golangci-lint
   rust:
-    enabled: false
+    enabled: true
+    tool: clippy
 
 severity_threshold: suggestion
 max_comments: 25
-
-custom_instructions: |
-  This is a Python code review agent. Pay special attention to:
-  - Async/await correctness
-  - Proper error handling
-  - GitHub API usage patterns
-  - Security of token handling
