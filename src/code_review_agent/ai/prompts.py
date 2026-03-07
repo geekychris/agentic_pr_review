@@ -9,8 +9,8 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 logger = logging.getLogger(__name__)
 
-# Default prompts directory (shipped with the package)
-_BUILTIN_PROMPTS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "prompts"
+# Default prompts directory (shipped inside the package)
+_BUILTIN_PROMPTS_DIR = Path(__file__).resolve().parent / "templates"
 
 
 class PromptRenderer:
