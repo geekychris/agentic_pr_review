@@ -72,13 +72,7 @@ jobs:
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}
 ```
 
-Then add the `OPENAI_API_KEY` secret:
-
-```bash
-gh secret set OPENAI_API_KEY --repo owner/repo
-```
-
-`GITHUB_TOKEN` is provided automatically by GitHub Actions.
+Then set up secrets (see [Setting Up Secrets](#setting-up-secrets) below).
 
 ### 3. Run locally (for debugging)
 
@@ -251,15 +245,82 @@ code-review-agent --version
 
 ---
 
+## Setting Up Secrets
+
+The agent needs two credentials to run in GitHub Actions:
+
+### 1. `OPENAI_API_KEY` (you must set this)
+
+Your OpenAI API key. Set it as a GitHub Actions secret on the target repo.
+
+**Option A: Via the install script (easiest)**
+
+```bash
+./scripts/install.sh owner/repo --set-secret --with-config
+# The script will prompt you to paste your key (input is hidden)
+```
+
+**Option B: Via `gh` CLI**
+
+```bash
+# Interactive (prompts for the key)
+gh secret set OPENAI_API_KEY --repo owner/repo
+
+# Or pipe from a file
+gh secret set OPENAI_API_KEY --repo owner/repo < ~/openai-key.txt
+
+# Or from an existing .env file
+grep '^CRA_OPENAI_API_KEY=' .env | cut -d= -f2- | gh secret set OPENAI_API_KEY --repo owner/repo
+```
+
+**Option C: Via GitHub web UI**
+
+1. Go to your repo on GitHub
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Name: `OPENAI_API_KEY`
+5. Value: your OpenAI API key (starts with `sk-`)
+6. Click **Add secret**
+
+### 2. `GITHUB_TOKEN` (automatic — no setup needed)
+
+GitHub automatically provides a `GITHUB_TOKEN` to every Actions run. The workflow uses it to read PR diffs and post review comments.
+
+**Default permissions** are sufficient if your repo has:
+- **Settings** → **Actions** → **General** → **Workflow permissions** set to **Read and write permissions**
+
+If your org restricts the default token, ensure it has these scopes:
+- `contents: read` — to read file contents
+- `pull-requests: write` — to post reviews and comments
+
+### Verifying secrets are set
+
+```bash
+# List all secrets on the repo (values are hidden)
+gh secret list --repo owner/repo
+```
+
+You should see `OPENAI_API_KEY` in the list. `GITHUB_TOKEN` won't appear — it's injected automatically.
+
+---
+
 ## Environment Variables
 
-- **`CRA_GITHUB_TOKEN`** — GitHub token with PR read/write access. *Required.*
+For local CLI usage, set these in a `.env` file or export them:
+
+- **`CRA_GITHUB_TOKEN`** — GitHub personal access token with `repo` scope. *Required for local use.*
 - **`CRA_OPENAI_API_KEY`** — OpenAI API key. *Required.*
 - **`CRA_OPENAI_ORG_ID`** — OpenAI organization ID. *Optional.*
 - **`CRA_LOG_LEVEL`** — Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Default: `INFO`
 - **`CRA_DRY_RUN`** — Set `true` to skip GitHub posting. Default: `false`
 
-Credentials can also be placed in a `.env` file (loaded automatically via pydantic-settings).
+```bash
+# Quick setup for local use
+cp .env.example .env
+# Edit .env with your values
+```
+
+Credentials are loaded automatically via pydantic-settings from `.env` or environment variables.
 
 ---
 
@@ -344,7 +405,8 @@ code-review-agent review https://github.com/owner/repo/pull/N
 
 ## Architecture
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed design docs.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — High-level design decisions
+- [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) — Detailed implementation guide with Mermaid diagrams, data models, and improvement roadmap
 
 ---
 
