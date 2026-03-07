@@ -1,0 +1,36 @@
+ai:
+  provider: openai
+  model: gpt-4o
+  temperature: 0.1
+
+focus_areas:
+  - correctness
+  - security
+  - performance
+  - style
+
+ignore_paths:
+  - "*.lock"
+  - "test_harness/test_files/**"
+  - ".github/**"
+
+linters:
+  python:
+    enabled: true
+    tool: ruff
+  java:
+    enabled: false
+  go:
+    enabled: false
+  rust:
+    enabled: false
+
+severity_threshold: suggestion
+max_comments: 25
+
+custom_instructions: |
+  This is a Python code review agent. Pay special attention to:
+  - Async/await correctness
+  - Proper error handling
+  - GitHub API usage patterns
+  - Security of token handling

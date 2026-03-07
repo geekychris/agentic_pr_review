@@ -1,0 +1,38 @@
+diff --git a/src/auth.py b/src/auth.py
+new file mode 100644
+index 0000000..abcdef1
+--- /dev/null
++++ b/src/auth.py
+@@ -0,0 +1,15 @@
++import hashlib
++
++DB_PASSWORD = "admin123"
++
++def authenticate(db, username, password):
++    query = f"SELECT * FROM users WHERE name = '{username}'"
++    user = db.execute(query).fetchone()
++    if user is None:
++        return False
++    hashed = hashlib.md5(password.encode()).hexdigest()
++    return user["password_hash"] == hashed
++
++def get_token(user_id):
++    import random
++    return str(random.randint(0, 999999))
+diff --git a/src/utils.py b/src/utils.py
+index 1234567..89abcde 100644
+--- a/src/utils.py
++++ b/src/utils.py
+@@ -1,5 +1,10 @@
+ import json
++import os
+ 
+ def load_config(path):
+-    with open(path) as f:
+-        return json.load(f)
++    data = open(path).read()
++    return json.loads(data)
++
++def run_cmd(cmd):
++    os.system(cmd)
++    return True

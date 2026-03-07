@@ -1,0 +1,33 @@
+name: Create Test PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      languages:
+        description: "Comma-separated languages to include (python,java,go,rust)"
+        required: false
+        default: "python"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-test-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install agent
+        run: pip install -e .
+
+      - name: Create test PR
+        env:
+          CRA_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          code-review-agent test-pr "${{ github.repository }}"

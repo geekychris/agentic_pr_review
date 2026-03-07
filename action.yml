@@ -1,0 +1,56 @@
+name: "AI Code Review Agent"
+description: "AI-powered code review with linting, security analysis, and inline suggestions"
+author: "code-review-agent"
+
+inputs:
+  github_token:
+    description: "GitHub token for API access"
+    required: true
+    default: ${{ github.token }}
+  openai_api_key:
+    description: "OpenAI API key"
+    required: true
+  openai_model:
+    description: "OpenAI model to use"
+    required: false
+    default: "gpt-4o"
+  debug:
+    description: "Enable debug logging"
+    required: false
+    default: "false"
+  max_comments:
+    description: "Maximum number of review comments"
+    required: false
+    default: "25"
+  severity_threshold:
+    description: "Minimum severity to report (error, warning, suggestion, info)"
+    required: false
+    default: "suggestion"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install code-review-agent
+      shell: bash
+      run: |
+        pip install -q "${{ github.action_path }}"
+
+    - name: Run review
+      shell: bash
+      env:
+        CRA_GITHUB_TOKEN: ${{ inputs.github_token }}
+        CRA_OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+        CRA_LOG_LEVEL: ${{ inputs.debug == 'true' && 'DEBUG' || 'INFO' }}
+      run: |
+        PR_URL="https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
+        code-review-agent review "$PR_URL" \
+          ${{ inputs.debug == 'true' && '--debug' || '' }}
+
+branding:
+  icon: "eye"
+  color: "blue"

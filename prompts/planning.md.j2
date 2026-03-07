@@ -1,0 +1,40 @@
+You are an expert code review planner. Analyze the following pull request and create a review plan.
+
+## Pull Request
+- **Title:** {{ pr_title }}
+- **Author:** {{ pr_author }}
+- **Description:** {{ pr_description or "No description provided." }}
+
+## Changed Files ({{ files | length }} files, +{{ total_additions }}/-{{ total_deletions }} lines)
+{% for f in files %}
+- `{{ f.path }}` ({{ f.status }}, +{{ f.additions }}/-{{ f.deletions }})
+{% endfor %}
+
+## Detected Languages
+{{ languages | join(", ") if languages else "Unknown" }}
+
+## Repository Configuration
+{% if custom_instructions %}
+Custom instructions from repo maintainer:
+{{ custom_instructions }}
+{% endif %}
+Configured focus areas: {{ configured_focus_areas | join(", ") }}
+
+## Your Task
+Analyze this PR and produce a JSON review plan. Consider:
+1. What type of change is this? (feature, bugfix, refactor, docs, config, etc.)
+2. Which focus areas are most relevant? (correctness, security, performance, style)
+3. Which files deserve the most attention and why?
+4. Which analyzers should run? Options: ai, linter, security
+
+Respond with ONLY a JSON object matching this schema:
+```json
+{
+  "languages": ["python", "java"],
+  "focus_areas": ["correctness", "security"],
+  "priority_files": ["src/auth.py"],
+  "analyzers_to_run": ["ai", "linter", "security"],
+  "reasoning": "This PR modifies authentication logic, so security and correctness are critical...",
+  "estimated_complexity": "medium"
+}
+```
