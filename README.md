@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Agentic PR Review logo" width="180">
+</p>
+
 # AI Code Review Agent
 
 An AI-powered code review tool for GitHub pull requests. Combines LLM analysis with classical linting to provide thorough, actionable reviews — posted as inline comments with one-click code suggestions.
